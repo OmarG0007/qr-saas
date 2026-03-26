@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "wasp/client/operations";
 import { getRestaurantBySlug } from "wasp/client/operations";
 import { CartProvider, useCart } from "./CartContext";
@@ -419,7 +419,10 @@ function MenuContent({ slug }: { slug: string }) {
                 <span className="font-bold text-gray-500">Total</span>
                 <span className="text-xl font-black text-gray-900">Rs. {total}</span>
               </div>
-              <button className="w-full rounded-2xl bg-yellow-600 py-4 text-lg font-black text-white shadow-xl shadow-yellow-100 transition-all active:scale-95">
+                <button
+                  onClick={() => navigate(`/m/${slug}/checkout`)}
+                  className="w-full rounded-2xl bg-yellow-600 py-4 text-lg font-black text-white shadow-xl shadow-yellow-100 transition-all active:scale-95"
+                >
                 Proceed to Checkout
               </button>
             </div>

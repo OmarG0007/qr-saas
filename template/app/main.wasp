@@ -233,6 +233,11 @@ action unlinkAddOnFromMenuItem {
   fn: import { unlinkAddOnFromMenuItem } from "@src/restaurant/operations",
   entities: [MenuItemAddOn]
 }
+
+action createOrder {
+  fn: import { createOrder } from "@src/restaurant/operations",
+  entities: [Order, OrderItem, OrderItemAddOn, Restaurant, MenuItem, AddOn, MenuItemAddOn]
+}
 //#endregion
 
 //#region Restaurant Onboarding
@@ -287,6 +292,16 @@ page DashboardSettingsPage {
 route MenuRoute { path: "/m/:slug", to: MenuPage }
 page MenuPage {
   component: import MenuPage from "@src/menu/MenuPage"
+}
+
+route CheckoutRoute { path: "/m/:slug/checkout", to: CheckoutPage }
+page CheckoutPage {
+  component: import CheckoutPage from "@src/menu/CheckoutPage"
+}
+
+route OrderStatusRoute { path: "/m/:slug/order/:orderId", to: OrderStatusPage }
+page OrderStatusPage {
+  component: import OrderStatusPage from "@src/menu/OrderStatusPage"
 }
 //#endregion
 

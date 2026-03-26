@@ -45,6 +45,98 @@ export const createRestaurant: CreateRestaurant<
   });
 };
 
+export const createOrder = async (
+  args: {
+    restaurantSlug: string;
+    customerName: string;
+    phone: string;
+    orderType: "DINE_IN" | "TAKEAWAY" | "DELIVERY";
+    tableNumber?: string;
+    address?: string;
+    paymentMethod: "CASH_ON_COUNTER" | "PAY_AT_RESTAURANT" | "CASH_ON_DELIVERY" | "BANK_TRANSFER" | "JAZZCASH" | "EASYPAISA";
+    items: {
+      menuItemId: string;
+      quantity: number;
+      selectedAddOnIds: string[];
+      instructions?: string;
+    }[];
+  },
+  context: any
+) => {
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { slug: args.restaurantSlug },
+    include: {
+      menuItems: {
+        include: {
+          addOns: {
+            include: {
+              addOn: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!restaurant || restaurant.status !== "APPROVED") {
+    throw new Error("Restaurant is not available for orders.");
+  }
+
+  // Calculate total and validate items server-side
+  let orderTotal = 0;
+  const orderItemsData = [];
+
+  for (const cartItem of args.items) {
+    const menuItem = restaurant.menuItems.find((mi: any) => mi.id === cartItem.menuItemId);
+    if (!menuItem || !menuItem.isAvailable) {
+      throw new Error(`Item ${cartItem.menuItemId} is no longer available.`);
+    }
+
+    let itemSubtotal = menuItem.price;
+    const itemAddOns = [];
+
+    for (const addOnId of cartItem.selectedAddOnIds) {
+      const addOnLink = menuItem.addOns.find((ao: any) => ao.addOnId === addOnId);
+      if (!addOnLink) {
+        throw new Error(`Add-on ${addOnId} is not available for item ${menuItem.name}.`);
+      }
+      itemSubtotal += addOnLink.addOn.price;
+      itemAddOns.push({
+        addOn: { connect: { id: addOnId } },
+        restaurant: { connect: { id: restaurant.id } },
+      });
+    }
+
+    orderTotal += itemSubtotal * cartItem.quantity;
+    orderItemsData.push({
+      menuItem: { connect: { id: menuItem.id } },
+      restaurant: { connect: { id: restaurant.id } },
+      quantity: cartItem.quantity,
+      price: menuItem.price, // Store price at time of order
+      addOns: {
+        create: itemAddOns,
+      },
+    });
+  }
+
+  // Create order in database
+  return context.entities.Order.create({
+    data: {
+      restaurant: { connect: { id: restaurant.id } },
+      customerName: args.customerName,
+      phone: args.phone,
+      orderType: args.orderType,
+      tableNumber: args.tableNumber,
+      address: args.address,
+      paymentMethod: args.paymentMethod,
+      total: orderTotal,
+      orderItems: {
+        create: orderItemsData,
+      },
+    },
+  });
+};
+
 export const getRestaurantBySlug = async (args: { slug: string }, context: any) => {
   const restaurant = await context.entities.Restaurant.findUnique({
     where: { slug: args.slug },
