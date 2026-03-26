@@ -14,6 +14,8 @@ const PUBLIC_ROUTES = [
   "/pricing",
 ];
 
+const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
+
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading: isAuthLoading } = useAuth();
   const { data: restaurant, isLoading: isRestaurantLoading } = useQuery(getMyRestaurant, { enabled: !!user });
@@ -21,13 +23,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    const isPublicRoute = PUBLIC_ROUTES.some((route) =>
-      location.pathname === route || location.pathname.startsWith("/m/")
-    );
+    const isPublicRoute = PUBLIC_ROUTES.includes(location.pathname) || location.pathname.startsWith("/m/");
+    const isProtectedRoute = PROTECTED_PREFIXES.some(prefix => location.pathname.startsWith(prefix));
 
-    if (!isAuthLoading && !isRestaurantLoading && !isPublicRoute) {
+    if (!isAuthLoading && !isRestaurantLoading && (isProtectedRoute || !isPublicRoute)) {
       if (!user) {
-        navigate("/login");
+        if (isProtectedRoute) navigate("/login");
       } else if (user.isAdmin) {
         // Admin is fine anywhere (we assume they know what they're doing)
         return;
@@ -38,6 +39,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       }
     }
   }, [user, restaurant, isAuthLoading, isRestaurantLoading, navigate, location.pathname]);
+
+  const isPublicRoute = PUBLIC_ROUTES.some((route) =>
+    location.pathname === route || location.pathname.startsWith("/m/")
+  );
+
+  if (!isPublicRoute && (isAuthLoading || isRestaurantLoading)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-600"></div>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

@@ -132,3 +132,224 @@ export const updateRestaurantStatus = async (
 
   return updatedRestaurant;
 };
+
+// --- Categories ---
+
+export const getCategories = async (_args: any, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  return context.entities.MenuCategory.findMany({
+    where: { restaurantId: restaurant.id },
+    orderBy: { displayOrder: "asc" },
+    include: {
+      menuItems: {
+        include: {
+          addOns: {
+            include: {
+              addOn: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+export const createCategory = async (args: { name: string; displayOrder?: number }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  return context.entities.MenuCategory.create({
+    data: {
+      name: args.name,
+      displayOrder: args.displayOrder || 0,
+      restaurant: { connect: { id: restaurant.id } },
+    },
+  });
+};
+
+export const updateCategory = async (args: { id: string; name?: string; displayOrder?: number }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+
+  const existingCategory = await context.entities.MenuCategory.findUnique({
+    where: { id: args.id },
+  });
+  if (!existingCategory) throw new Error("Category not found");
+
+  if (args.displayOrder !== undefined && args.displayOrder !== existingCategory.displayOrder) {
+    // Basic reordering: shift others
+    const isMovingUp = args.displayOrder < existingCategory.displayOrder;
+    await context.entities.MenuCategory.updateMany({
+      where: {
+        restaurantId: existingCategory.restaurantId,
+        displayOrder: isMovingUp
+          ? { gte: args.displayOrder, lt: existingCategory.displayOrder }
+          : { gt: existingCategory.displayOrder, lte: args.displayOrder },
+      },
+      data: {
+        displayOrder: isMovingUp ? { increment: 1 } : { decrement: 1 },
+      },
+    });
+  }
+
+  const data: any = {};
+  if (args.name !== undefined) data.name = args.name;
+  if (args.displayOrder !== undefined) data.displayOrder = args.displayOrder;
+
+  return context.entities.MenuCategory.update({
+    where: { id: args.id },
+    data,
+  });
+};
+
+export const deleteCategory = async (args: { id: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  return context.entities.MenuCategory.delete({
+    where: { id: args.id },
+  });
+};
+
+export const linkAddOnToMenuItem = async (args: { menuItemId: string; addOnId: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  return context.entities.MenuItemAddOn.create({
+    data: {
+      menuItem: { connect: { id: args.menuItemId } },
+      addOn: { connect: { id: args.addOnId } },
+    },
+  });
+};
+
+export const unlinkAddOnFromMenuItem = async (args: { menuItemId: string; addOnId: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  return context.entities.MenuItemAddOn.delete({
+    where: {
+      menuItemId_addOnId: {
+        menuItemId: args.menuItemId,
+        addOnId: args.addOnId,
+      },
+    },
+  });
+};
+
+// --- Menu Items ---
+
+export const createMenuItem = async (
+  args: {
+    name: string;
+    description?: string;
+    price: number;
+    categoryId: string;
+    image?: string;
+    isAvailable?: boolean;
+  },
+  context: any
+) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  return context.entities.MenuItem.create({
+    data: {
+      name: args.name,
+      description: args.description,
+      price: args.price,
+      image: args.image,
+      isAvailable: args.isAvailable ?? true,
+      category: { connect: { id: args.categoryId } },
+      restaurant: { connect: { id: restaurant.id } },
+    },
+  });
+};
+
+export const updateMenuItem = async (
+  args: {
+    id: string;
+    name?: string;
+    description?: string;
+    price?: number;
+    image?: string;
+    isAvailable?: boolean;
+    categoryId?: string;
+  },
+  context: any
+) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const data: any = { ...args };
+  delete data.id;
+  if (args.categoryId) {
+    data.category = { connect: { id: args.categoryId } };
+    delete data.categoryId;
+  }
+
+  return context.entities.MenuItem.update({
+    where: { id: args.id },
+    data,
+  });
+};
+
+export const deleteMenuItem = async (args: { id: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  return context.entities.MenuItem.delete({
+    where: { id: args.id },
+  });
+};
+
+// --- Add-Ons ---
+
+export const getAddOnsByMenuItem = async (args: { menuItemId: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  return context.entities.AddOn.findMany({
+    where: {
+      restaurant: { user: { id: context.user.id } },
+      // Note: AddOn schema doesn't directly link to MenuItem, let's fix that or manage differently
+      // Based on schema, AddOn belongs to Restaurant.
+    },
+  });
+};
+
+// Re-thinking: AddOn is scoped to Restaurant in Task 1. We need a way to link it to MenuItem
+// for many-to-many. Let's add a join model in the next step or adjust.
+// For now, let's allow managing AddOns at the restaurant level as a global list.
+export const getRestaurantAddOns = async (_args: any, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  return context.entities.AddOn.findMany({
+    where: { restaurantId: restaurant.id },
+  });
+};
+
+export const createAddOn = async (args: { name: string; price: number }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  return context.entities.AddOn.create({
+    data: {
+      name: args.name,
+      price: args.price,
+      restaurant: { connect: { id: restaurant.id } },
+    },
+  });
+};
+
+export const deleteAddOn = async (args: { id: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  return context.entities.AddOn.delete({
+    where: { id: args.id },
+  });
+};

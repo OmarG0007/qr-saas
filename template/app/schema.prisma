@@ -90,7 +90,8 @@ model Restaurant {
 model MenuCategory {
   id           String     @id @default(uuid())
   name         String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  displayOrder Int        @default(0)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String
   menuItems    MenuItem[]
 }
@@ -101,20 +102,31 @@ model MenuItem {
   description  String?
   price        Float
   image        String?
-  category     MenuCategory @relation(fields: [categoryId], references: [id])
+  isAvailable  Boolean      @default(true)
+  category     MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId   String
-  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String
   orderItems   OrderItem[]
+  addOns       MenuItemAddOn[]
+}
+
+model MenuItemAddOn {
+  @@id([menuItemId, addOnId])
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItemId String
+  addOn      AddOn    @relation(fields: [addOnId], references: [id], onDelete: Cascade)
+  addOnId    String
 }
 
 model AddOn {
   id           String      @id @default(uuid())
   name         String
   price        Float
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String
   orderItemAddOns OrderItemAddOn[]
+  menuItems       MenuItemAddOn[]
 }
 
 model Order {
@@ -122,7 +134,7 @@ model Order {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id])
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId  String
 
   phone         String
@@ -140,11 +152,11 @@ model Order {
 
 model OrderItem {
   id           String     @id @default(uuid())
-  order        Order      @relation(fields: [orderId], references: [id])
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   orderId      String
-  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
   menuItemId   String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String
   quantity     Int
   price        Float      // Price at time of order
@@ -154,11 +166,11 @@ model OrderItem {
 
 model OrderItemAddOn {
   id           String     @id @default(uuid())
-  orderItem    OrderItem  @relation(fields: [orderItemId], references: [id])
+  orderItem    OrderItem  @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
   orderItemId  String
-  addOn        AddOn      @relation(fields: [addOnId], references: [id])
+  addOn        AddOn      @relation(fields: [addOnId], references: [id], onDelete: Restrict)
   addOnId      String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String
 }
 

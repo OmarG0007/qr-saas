@@ -171,7 +171,67 @@ query getRestaurantsByStatus {
 
 action updateRestaurantStatus {
   fn: import { updateRestaurantStatus } from "@src/restaurant/operations",
-  entities: [Restaurant]
+  entities: [Restaurant, User]
+}
+
+query getCategories {
+  fn: import { getCategories } from "@src/restaurant/operations",
+  entities: [MenuCategory, MenuItem, Restaurant, AddOn, MenuItemAddOn]
+}
+
+action createCategory {
+  fn: import { createCategory } from "@src/restaurant/operations",
+  entities: [MenuCategory, Restaurant]
+}
+
+action updateCategory {
+  fn: import { updateCategory } from "@src/restaurant/operations",
+  entities: [MenuCategory]
+}
+
+action deleteCategory {
+  fn: import { deleteCategory } from "@src/restaurant/operations",
+  entities: [MenuCategory]
+}
+
+action createMenuItem {
+  fn: import { createMenuItem } from "@src/restaurant/operations",
+  entities: [MenuItem, Restaurant]
+}
+
+action updateMenuItem {
+  fn: import { updateMenuItem } from "@src/restaurant/operations",
+  entities: [MenuItem]
+}
+
+action deleteMenuItem {
+  fn: import { deleteMenuItem } from "@src/restaurant/operations",
+  entities: [MenuItem]
+}
+
+query getRestaurantAddOns {
+  fn: import { getRestaurantAddOns } from "@src/restaurant/operations",
+  entities: [AddOn, Restaurant]
+}
+
+action createAddOn {
+  fn: import { createAddOn } from "@src/restaurant/operations",
+  entities: [AddOn, Restaurant]
+}
+
+action deleteAddOn {
+  fn: import { deleteAddOn } from "@src/restaurant/operations",
+  entities: [AddOn]
+}
+
+action linkAddOnToMenuItem {
+  fn: import { linkAddOnToMenuItem } from "@src/restaurant/operations",
+  entities: [MenuItemAddOn]
+}
+
+action unlinkAddOnFromMenuItem {
+  fn: import { unlinkAddOnFromMenuItem } from "@src/restaurant/operations",
+  entities: [MenuItemAddOn]
 }
 //#endregion
 
