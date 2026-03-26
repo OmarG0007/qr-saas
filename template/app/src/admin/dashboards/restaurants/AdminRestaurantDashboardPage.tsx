@@ -1,8 +1,11 @@
 import React, { useState } from "react";
+import { useAuth } from "wasp/client/auth";
 import { useQuery, useAction } from "wasp/client/operations";
 import { getRestaurantsByStatus, updateRestaurantStatus } from "wasp/client/operations";
+import DefaultLayout from "../../layout/DefaultLayout";
 
 export default function AdminRestaurantDashboardPage() {
+  const { data: user } = useAuth();
   const [selectedStatus, setSelectedStatus] = useState<string | undefined>("PENDING");
   const { data: restaurants, isLoading, error } = useQuery(getRestaurantsByStatus, { status: selectedStatus });
   const updateStatusAction = useAction(updateRestaurantStatus);
@@ -26,9 +29,10 @@ export default function AdminRestaurantDashboardPage() {
 
   if (isLoading) return <div className="p-8 text-center text-gray-500">Loading restaurants...</div>;
   if (error) return <div className="p-8 text-center text-red-500 font-bold">Error: {error.message}</div>;
+  if (!user) return null;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <DefaultLayout user={user}>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold text-gray-900">Restaurant Management</h1>
         <div className="flex space-x-2">
@@ -53,7 +57,8 @@ export default function AdminRestaurantDashboardPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Restaurant</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Owner</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Submitted</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -61,17 +66,23 @@ export default function AdminRestaurantDashboardPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {restaurants?.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-gray-500 italic">No restaurants found in this category.</td>
+                <td colSpan={5} className="px-6 py-10 text-center text-gray-500 italic">No restaurants found in this category.</td>
               </tr>
             ) : (
               restaurants?.map((restaurant: any) => (
                 <tr key={restaurant.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-900">{restaurant.name}</div>
-                    <div className="text-xs text-gray-500">Slug: {restaurant.slug}</div>
-                    <div className="text-xs text-gray-400 mt-1">{restaurant.address}</div>
+                    <div className="text-xs text-gray-500">/m/{restaurant.slug}</div>
+                    <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">{restaurant.address}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600 font-medium">{restaurant.user.email}</td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-600 font-medium">{restaurant.user.email}</div>
+                    <div className="text-xs text-gray-400">{restaurant.phone}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {new Date(restaurant.createdAt).toLocaleDateString()}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                       restaurant.status === "APPROVED" ? "bg-green-100 text-green-800" :
@@ -81,6 +92,11 @@ export default function AdminRestaurantDashboardPage() {
                     }`}>
                       {restaurant.status}
                     </span>
+                    {restaurant.status === "REJECTED" && restaurant.statusDetails && (
+                      <div className="mt-1 text-xs text-red-600 italic max-w-xs break-words">
+                        Reason: {restaurant.statusDetails}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 space-y-2">
                     {actingOnId === restaurant.id ? (
@@ -141,6 +157,6 @@ export default function AdminRestaurantDashboardPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </DefaultLayout>
   );
 }

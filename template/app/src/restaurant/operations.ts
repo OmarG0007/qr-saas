@@ -77,6 +77,7 @@ export const getRestaurantsByStatus = async (args: { status?: string }, context:
     include: {
       user: {
         select: {
+          id: true,
           email: true,
         },
       },
@@ -93,11 +94,41 @@ export const updateRestaurantStatus = async (
     throw new Error("Unauthorized");
   }
 
-  return context.entities.Restaurant.update({
+  const updatedRestaurant = await context.entities.Restaurant.update({
     where: { id: args.id },
     data: {
       status: args.status,
       statusDetails: args.statusDetails,
     },
+    include: {
+      user: {
+        select: {
+          email: true,
+        },
+      },
+    },
   });
+
+  if (updatedRestaurant.user.email) {
+    try {
+      const { getApprovalEmail, getRejectionEmail } = await import("./emails");
+      let emailContent;
+      if (args.status === "APPROVED") {
+        emailContent = getApprovalEmail(updatedRestaurant.name);
+      } else if (args.status === "REJECTED") {
+        emailContent = getRejectionEmail(updatedRestaurant.name, args.statusDetails || "No reason provided.");
+      }
+
+      if (emailContent) {
+        await context.emailSender.send({
+          to: updatedRestaurant.user.email,
+          ...emailContent,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to send status update email:", error);
+    }
+  }
+
+  return updatedRestaurant;
 };
