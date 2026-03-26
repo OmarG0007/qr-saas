@@ -238,6 +238,16 @@ action createOrder {
   fn: import { createOrder } from "@src/restaurant/operations",
   entities: [Order, OrderItem, OrderItemAddOn, Restaurant, MenuItem, AddOn, MenuItemAddOn]
 }
+
+query getOrderDetails {
+  fn: import { getOrderDetails } from "@src/restaurant/operations",
+  entities: [Order, OrderItem, MenuItem, AddOn, Restaurant, OrderItemAddOn]
+}
+
+query findOrderByPhone {
+  fn: import { findOrderByPhone } from "@src/restaurant/operations",
+  entities: [Order, Restaurant]
+}
 //#endregion
 
 //#region Restaurant Onboarding

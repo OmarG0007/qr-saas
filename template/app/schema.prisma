@@ -31,6 +31,7 @@ model User {
 
 enum OrderStatus {
   PENDING
+  ACCEPTED
   PREPARING
   READY
   DELIVERED
@@ -168,6 +169,7 @@ model OrderItem {
   restaurantId String
   quantity     Int
   price        Float      // Price at time of order
+  instructions String?
 
   addOns       OrderItemAddOn[]
 }

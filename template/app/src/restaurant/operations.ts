@@ -45,6 +45,48 @@ export const createRestaurant: CreateRestaurant<
   });
 };
 
+export const getOrderDetails = async (args: { orderId: string; slug: string }, context: any) => {
+  const order = await context.entities.Order.findUnique({
+    where: { id: args.orderId },
+    include: {
+      restaurant: true,
+      orderItems: {
+        include: {
+          menuItem: true,
+          addOns: {
+            include: {
+              addOn: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!order || order.restaurant.slug !== args.slug) {
+    throw new Error("Order not found or access denied.");
+  }
+
+  return order;
+};
+
+export const findOrderByPhone = async (args: { phone: string; slug: string }, context: any) => {
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { slug: args.slug },
+  });
+
+  if (!restaurant) throw new Error("Restaurant not found.");
+
+  return context.entities.Order.findFirst({
+    where: {
+      phone: args.phone,
+      restaurantId: restaurant.id,
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+};
+
 export const createOrder = async (
   args: {
     restaurantSlug: string;
@@ -113,6 +155,7 @@ export const createOrder = async (
       restaurant: { connect: { id: restaurant.id } },
       quantity: cartItem.quantity,
       price: menuItem.price, // Store price at time of order
+      instructions: cartItem.instructions,
       addOns: {
         create: itemAddOns,
       },

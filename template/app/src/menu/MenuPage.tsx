@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "wasp/client/operations";
-import { getRestaurantBySlug } from "wasp/client/operations";
+import { getRestaurantBySlug, findOrderByPhone, getOrderDetails } from "wasp/client/operations";
 import { CartProvider, useCart } from "./CartContext";
 import { useToast } from "../client/components/ui/toast-hooks";
 import {
@@ -13,6 +13,8 @@ import {
   ChevronRight,
   Info,
   Loader2,
+  AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 
 function ItemDetailContent({ item, onAdd }: { item: any; onAdd: any }) {
@@ -125,6 +127,32 @@ function MenuContent({ slug }: { slug: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [isLookupOpen, setIsLookupOpen] = useState(false);
+  const [lookupPhone, setLookupPhone] = useState("");
+
+  // --- Active Order Logic ---
+  useEffect(() => {
+    const saved = localStorage.getItem(`order_${slug}`);
+    if (saved) {
+      try {
+        const { orderId } = JSON.parse(saved);
+        setActiveOrderId(orderId);
+      } catch (e) {}
+    }
+  }, [slug]);
+
+  const { data: activeOrder } = useQuery(getOrderDetails,
+    { orderId: activeOrderId || "", slug },
+    { enabled: !!activeOrderId }
+  );
+
+  useEffect(() => {
+    if (activeOrder && (activeOrder.status === "DELIVERED" || activeOrder.status === "CANCELLED")) {
+      localStorage.removeItem(`order_${slug}`);
+      setActiveOrderId(null);
+    }
+  }, [activeOrder, slug]);
 
   // --- Cart Validation Logic ---
   useEffect(() => {
@@ -189,6 +217,20 @@ function MenuContent({ slug }: { slug: string }) {
 
   const categories = restaurant.categories || [];
 
+  const handleLookup = async () => {
+    if (!lookupPhone) return;
+    try {
+      const res = await findOrderByPhone({ phone: lookupPhone, slug });
+      if (res) {
+        navigate(`/m/${slug}/order/${res.id}`);
+      } else {
+        alert("No recent orders found for this phone number.");
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
   const handleAddToCart = (
     item: any,
     quantity: number,
@@ -201,6 +243,20 @@ function MenuContent({ slug }: { slug: string }) {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Active Order Banner */}
+      {activeOrder && activeOrder.status !== "DELIVERED" && activeOrder.status !== "CANCELLED" && (
+        <div
+          onClick={() => navigate(`/m/${slug}/order/${activeOrder.id}`)}
+          className="bg-yellow-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-between cursor-pointer sticky top-0 z-40"
+        >
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>You have an active order: {activeOrder.status}</span>
+          </div>
+          <ExternalLink className="h-3 w-3" />
+        </div>
+      )}
+
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white shadow-sm">
         <div className="flex items-center justify-between px-4 py-4">
@@ -210,9 +266,12 @@ function MenuContent({ slug }: { slug: string }) {
             </h1>
             <p className="text-xs font-medium text-gray-500">PKR {restaurant.address}</p>
           </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 text-yellow-700">
-            <Info className="h-5 w-5" />
-          </div>
+          <button
+            onClick={() => setIsLookupOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-100 text-yellow-700"
+          >
+            <Search className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Search */}
@@ -319,6 +378,28 @@ function MenuContent({ slug }: { slug: string }) {
           </div>
           <span className="font-black">Rs. {total}</span>
         </button>
+      )}
+
+      {/* Find Order Modal */}
+      {isLookupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setIsLookupOpen(false)}></div>
+          <div className="relative bg-white rounded-3xl w-full max-w-sm p-6 animate-in zoom-in duration-200">
+            <h3 className="text-xl font-black mb-2">Find My Order</h3>
+            <p className="text-sm text-gray-500 mb-6">Enter your phone number to find your most recent order.</p>
+            <input
+              type="tel"
+              placeholder="e.g. 03001234567"
+              className="w-full border-gray-200 rounded-xl px-4 py-3 mb-4 focus:ring-yellow-500 focus:border-yellow-500"
+              value={lookupPhone}
+              onChange={e => setLookupPhone(e.target.value)}
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setIsLookupOpen(false)} className="flex-1 px-4 py-3 font-bold text-gray-500">Cancel</button>
+              <button onClick={handleLookup} className="flex-1 bg-yellow-600 text-white rounded-xl py-3 font-bold shadow-lg shadow-yellow-100">Find</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Item Detail Modal/Drawer */}
