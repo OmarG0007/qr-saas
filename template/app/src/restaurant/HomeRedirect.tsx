@@ -21,8 +21,8 @@ export default function HomeRedirect() {
       } else if (restaurant.status !== "APPROVED") {
         navigate("/restaurant-status");
       } else {
-        // If approved, go to the demo app or some actual dashboard
-        navigate("/demo-app");
+        // If approved, go to the restaurant dashboard
+        navigate("/dashboard");
       }
     }
   }, [user, restaurant, isAuthLoading, isRestaurantLoading, navigate]);

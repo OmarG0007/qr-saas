@@ -85,7 +85,7 @@ export default function RestaurantStatusPage() {
           <div className="space-y-4">
             {restaurant.status === "APPROVED" && (
               <Link
-                to={routes.DemoAppRoute.to}
+                to={routes.DashboardRoute.to}
                 className="block w-full rounded-md bg-yellow-600 py-2 px-4 text-sm font-medium text-white hover:bg-yellow-700"
               >
                 Go to Dashboard

@@ -193,6 +193,36 @@ page RestaurantStatusPage {
   authRequired: true,
   component: import RestaurantStatus from "@src/restaurant/RestaurantStatusPage"
 }
+
+route DashboardRoute { path: "/dashboard", to: DashboardPage }
+page DashboardPage {
+  authRequired: true,
+  component: import Dashboard from "@src/dashboard/pages/DashboardOverviewPage"
+}
+
+route DashboardOrdersRoute { path: "/dashboard/orders", to: DashboardOrdersPage }
+page DashboardOrdersPage {
+  authRequired: true,
+  component: import DashboardOrders from "@src/dashboard/pages/DashboardOrdersPage"
+}
+
+route DashboardMenuRoute { path: "/dashboard/menu", to: DashboardMenuPage }
+page DashboardMenuPage {
+  authRequired: true,
+  component: import DashboardMenu from "@src/dashboard/pages/DashboardMenuPage"
+}
+
+route DashboardReportsRoute { path: "/dashboard/reports", to: DashboardReportsPage }
+page DashboardReportsPage {
+  authRequired: true,
+  component: import DashboardReports from "@src/dashboard/pages/DashboardReportsPage"
+}
+
+route DashboardSettingsRoute { path: "/dashboard/settings", to: DashboardSettingsPage }
+page DashboardSettingsPage {
+  authRequired: true,
+  component: import DashboardSettings from "@src/dashboard/pages/DashboardSettingsPage"
+}
 //#endregion
 
 //#region Demo AI App
