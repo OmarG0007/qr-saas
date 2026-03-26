@@ -26,6 +26,130 @@ model User {
   contactFormMessages       ContactFormMessage[]
   tasks                     Task[]
   files                     File[]
+  restaurant                Restaurant?
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum PaymentMethod {
+  CASH
+  PAY_AT_COUNTER
+  BANK_TRANSFER
+  JAZZCASH
+  EASYPAISA
+}
+
+model Restaurant {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  slug        String   @unique
+  address     String?
+  phone       String?
+
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @unique
+
+  categories  MenuCategory[]
+  menuItems   MenuItem[]
+  addOns      AddOn[]
+  orders      Order[]
+  orderItems  OrderItem[]
+  orderItemAddOns OrderItemAddOn[]
+}
+
+model MenuCategory {
+  id           String     @id @default(uuid())
+  name         String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  menuItems    MenuItem[]
+}
+
+model MenuItem {
+  id           String       @id @default(uuid())
+  name         String
+  description  String?
+  price        Float
+  image        String?
+  category     MenuCategory @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  orderItems   OrderItem[]
+}
+
+model AddOn {
+  id           String      @id @default(uuid())
+  name         String
+  price        Float
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  orderItemAddOns OrderItemAddOn[]
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id])
+  restaurantId  String
+
+  phone         String
+  orderType     OrderType
+  tableNumber   String?       // For Dine-in
+  address       String?       // For Delivery
+
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(UNPAID)
+  status        OrderStatus   @default(PENDING)
+
+  total         Float
+  orderItems    OrderItem[]
+}
+
+model OrderItem {
+  id           String     @id @default(uuid())
+  order        Order      @relation(fields: [orderId], references: [id])
+  orderId      String
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
+  menuItemId   String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId String
+  quantity     Int
+  price        Float      // Price at time of order
+
+  addOns       OrderItemAddOn[]
+}
+
+model OrderItemAddOn {
+  id           String     @id @default(uuid())
+  orderItem    OrderItem  @relation(fields: [orderItemId], references: [id])
+  orderItemId  String
+  addOn        AddOn      @relation(fields: [addOnId], references: [id])
+  addOnId      String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  restaurantId String
 }
 
 model GptResponse {
