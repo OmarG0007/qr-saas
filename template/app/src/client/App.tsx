@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router";
 import { routes } from "wasp/client/router";
 import { Toaster } from "../client/components/ui/toaster";
 import "./Main.css";
+import AuthGuard from "../restaurant/AuthGuard";
 import NavBar from "./components/NavBar/NavBar";
 import {
   demoNavigationitems,
@@ -48,7 +49,7 @@ export default function App() {
   }, [location]);
 
   return (
-    <>
+    <AuthGuard>
       <div className="bg-background text-foreground min-h-screen">
         {isAdminDashboard ? (
           <Outlet />
@@ -65,6 +66,6 @@ export default function App() {
       </div>
       <Toaster position="bottom-right" />
       <CookieConsentBanner />
-    </>
+    </AuthGuard>
   );
 }

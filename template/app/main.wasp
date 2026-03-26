@@ -68,7 +68,7 @@ app OpenSaaS {
       // }
     },
     onAuthFailedRedirectTo: "/login",
-    onAuthSucceededRedirectTo: "/demo-app",
+    onAuthSucceededRedirectTo: "/home-redirect",
   },
 
   db: {
@@ -147,6 +147,51 @@ query getPaginatedUsers {
 action updateIsUserAdminById {
   fn: import { updateIsUserAdminById } from "@src/user/operations",
   entities: [User]
+}
+
+query getRestaurantBySlug {
+  fn: import { getRestaurantBySlug } from "@src/restaurant/operations",
+  entities: [Restaurant, MenuCategory, MenuItem, AddOn]
+}
+
+query getMyRestaurant {
+  fn: import { getMyRestaurant } from "@src/restaurant/operations",
+  entities: [Restaurant]
+}
+
+action createRestaurant {
+  fn: import { createRestaurant } from "@src/restaurant/operations",
+  entities: [Restaurant]
+}
+
+query getRestaurantsByStatus {
+  fn: import { getRestaurantsByStatus } from "@src/restaurant/operations",
+  entities: [Restaurant, User]
+}
+
+action updateRestaurantStatus {
+  fn: import { updateRestaurantStatus } from "@src/restaurant/operations",
+  entities: [Restaurant]
+}
+//#endregion
+
+//#region Restaurant Onboarding
+route HomeRedirectRoute { path: "/home-redirect", to: HomeRedirectPage }
+page HomeRedirectPage {
+  authRequired: true,
+  component: import HomeRedirect from "@src/restaurant/HomeRedirect"
+}
+
+route RestaurantSetupRoute { path: "/restaurant-setup", to: RestaurantSetupPage }
+page RestaurantSetupPage {
+  authRequired: true,
+  component: import RestaurantSetup from "@src/restaurant/RestaurantSetupPage"
+}
+
+route RestaurantStatusRoute { path: "/restaurant-status", to: RestaurantStatusPage }
+page RestaurantStatusPage {
+  authRequired: true,
+  component: import RestaurantStatus from "@src/restaurant/RestaurantStatusPage"
 }
 //#endregion
 
@@ -316,5 +361,11 @@ route AdminMessagesRoute { path: "/admin/messages", to: AdminMessagesPage }
 page AdminMessagesPage {
   authRequired: true,
   component: import AdminMessages from "@src/admin/dashboards/messages/MessagesPage"
+}
+
+route AdminRestaurantsRoute { path: "/admin/restaurants", to: AdminRestaurantsPage }
+page AdminRestaurantsPage {
+  authRequired: true,
+  component: import AdminRestaurants from "@src/admin/dashboards/restaurants/AdminRestaurantDashboardPage"
 }
 //#endregion

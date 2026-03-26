@@ -56,6 +56,13 @@ enum PaymentMethod {
   EASYPAISA
 }
 
+enum RestaurantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
 model Restaurant {
   id          String   @id @default(uuid())
   createdAt   DateTime @default(now())
@@ -63,8 +70,11 @@ model Restaurant {
 
   name        String
   slug        String   @unique
-  address     String?
-  phone       String?
+  address       String?
+  phone         String?
+  description   String?
+  status        RestaurantStatus @default(PENDING)
+  statusDetails String?
 
   user        User     @relation(fields: [userId], references: [id])
   userId      String   @unique
