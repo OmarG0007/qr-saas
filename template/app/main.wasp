@@ -283,6 +283,11 @@ page DashboardSettingsPage {
   authRequired: true,
   component: import DashboardSettings from "@src/dashboard/pages/DashboardSettingsPage"
 }
+
+route MenuRoute { path: "/m/:slug", to: MenuPage }
+page MenuPage {
+  component: import MenuPage from "@src/menu/MenuPage"
+}
 //#endregion
 
 //#region Demo AI App

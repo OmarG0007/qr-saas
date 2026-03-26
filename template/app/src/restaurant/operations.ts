@@ -46,17 +46,33 @@ export const createRestaurant: CreateRestaurant<
 };
 
 export const getRestaurantBySlug = async (args: { slug: string }, context: any) => {
-  return context.entities.Restaurant.findUnique({
+  const restaurant = await context.entities.Restaurant.findUnique({
     where: { slug: args.slug },
     include: {
       categories: {
+        orderBy: { displayOrder: "asc" },
         include: {
-          menuItems: true,
+          menuItems: {
+            where: { isAvailable: true },
+            include: {
+              addOns: {
+                include: {
+                  addOn: true,
+                },
+              },
+            },
+          },
         },
       },
       addOns: true,
     },
   });
+
+  if (restaurant && restaurant.status !== "APPROVED") {
+    return null; // Don't show menu for unapproved/suspended restaurants
+  }
+
+  return restaurant;
 };
 
 export const getMyRestaurant = async (_args: any, context: any) => {
