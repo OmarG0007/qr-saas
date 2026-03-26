@@ -70,6 +70,168 @@ export const getOrderDetails = async (args: { orderId: string; slug: string }, c
   return order;
 };
 
+export const getRestaurantOrders = async (args: { status?: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  return context.entities.Order.findMany({
+    where: {
+      restaurantId: restaurant.id,
+      status: args.status ? (args.status as any) : undefined,
+    },
+    include: {
+      orderItems: {
+        include: {
+          menuItem: true,
+          addOns: { include: { addOn: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+export const updateOrderStatus = async (
+  args: { orderId: string; status: string },
+  context: any
+) => {
+  if (!context.user) throw new Error("Unauthorized");
+  // Security check: ensure order belongs to user's restaurant
+  const order = await context.entities.Order.findUnique({
+    where: { id: args.orderId },
+    include: { restaurant: true },
+  });
+  if (!order || order.restaurant.userId !== context.user.id) {
+    throw new Error("Access denied");
+  }
+
+  return context.entities.Order.update({
+    where: { id: args.orderId },
+    data: { status: args.status as any },
+  });
+};
+
+export const updateOrderPaymentStatus = async (
+  args: { orderId: string; paymentStatus: string },
+  context: any
+) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const order = await context.entities.Order.findUnique({
+    where: { id: args.orderId },
+    include: { restaurant: true },
+  });
+  if (!order || order.restaurant.userId !== context.user.id) {
+    throw new Error("Access denied");
+  }
+
+  return context.entities.Order.update({
+    where: { id: args.orderId },
+    data: { paymentStatus: args.paymentStatus as any },
+  });
+};
+
+export const getDashboardStats = async (_args: any, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [ordersToday, revenueToday, pendingCount, menuItemsCount] = await Promise.all([
+    context.entities.Order.count({
+      where: { restaurantId: restaurant.id, createdAt: { gte: todayStart } },
+    }),
+    context.entities.Order.aggregate({
+      where: {
+        restaurantId: restaurant.id,
+        createdAt: { gte: todayStart },
+        status: { not: "CANCELLED" },
+      },
+      _sum: { total: true },
+    }),
+    context.entities.Order.count({
+      where: { restaurantId: restaurant.id, status: { in: ["PENDING", "ACCEPTED", "PREPARING"] } },
+    }),
+    context.entities.MenuItem.count({
+      where: { restaurantId: restaurant.id },
+    }),
+  ]);
+
+  return {
+    ordersToday,
+    revenueToday: revenueToday._sum.total || 0,
+    pendingCount,
+    menuItemsCount,
+  };
+};
+
+export const updateRestaurantSettings = async (args: any, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  const { id, ...data } = args;
+  return context.entities.Restaurant.update({
+    where: { id: restaurant.id },
+    data,
+  });
+};
+
+export const getReportData = async (args: { startDate: string; endDate: string }, context: any) => {
+  if (!context.user) throw new Error("Unauthorized");
+  const restaurant = await context.entities.Restaurant.findUnique({
+    where: { userId: context.user.id },
+  });
+  if (!restaurant) throw new Error("Restaurant not found");
+
+  const start = new Date(args.startDate);
+  const end = new Date(args.endDate);
+  end.setHours(23, 59, 59, 999);
+
+  const [orders, topItems] = await Promise.all([
+    context.entities.Order.findMany({
+      where: {
+        restaurantId: restaurant.id,
+        createdAt: { gte: start, lte: end },
+      },
+    }),
+    context.entities.OrderItem.groupBy({
+      by: ["menuItemId"],
+      where: {
+        restaurantId: restaurant.id,
+        order: { createdAt: { gte: start, lte: end } },
+      },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
+      take: 5,
+    }),
+  ]);
+
+  // Fetch names for top items
+  const topItemsWithDetails = await Promise.all(
+    topItems.map(async (item) => {
+      const details = await context.entities.MenuItem.findUnique({
+        where: { id: item.menuItemId },
+        select: { name: true },
+      });
+      return { name: details?.name || "Unknown", quantity: item._sum.quantity || 0 };
+    })
+  );
+
+  return {
+    orders,
+    topItems: topItemsWithDetails,
+  };
+};
+
 export const findOrderByPhone = async (args: { phone: string; slug: string }, context: any) => {
   const restaurant = await context.entities.Restaurant.findUnique({
     where: { slug: args.slug },

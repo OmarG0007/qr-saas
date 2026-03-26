@@ -30,7 +30,7 @@ export default function OrderStatusPage() {
   const { data: order, isLoading, error } = useQuery(
     getOrderDetails,
     { orderId: orderId || "", slug: slug || "" },
-    { enabled: !!orderId && !!slug, refetchInterval: 10000 } // Poll every 10s
+    { enabled: !!orderId && !!slug, refetchInterval: 5000 } // Poll every 5s
   );
 
   if (isLoading)

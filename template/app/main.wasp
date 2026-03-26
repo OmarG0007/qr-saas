@@ -239,6 +239,36 @@ action createOrder {
   entities: [Order, OrderItem, OrderItemAddOn, Restaurant, MenuItem, AddOn, MenuItemAddOn]
 }
 
+query getRestaurantOrders {
+  fn: import { getRestaurantOrders } from "@src/restaurant/operations",
+  entities: [Order, OrderItem, MenuItem, AddOn, Restaurant, OrderItemAddOn]
+}
+
+action updateOrderStatus {
+  fn: import { updateOrderStatus } from "@src/restaurant/operations",
+  entities: [Order, Restaurant]
+}
+
+action updateOrderPaymentStatus {
+  fn: import { updateOrderPaymentStatus } from "@src/restaurant/operations",
+  entities: [Order, Restaurant]
+}
+
+query getDashboardStats {
+  fn: import { getDashboardStats } from "@src/restaurant/operations",
+  entities: [Order, Restaurant, MenuItem]
+}
+
+action updateRestaurantSettings {
+  fn: import { updateRestaurantSettings } from "@src/restaurant/operations",
+  entities: [Restaurant]
+}
+
+query getReportData {
+  fn: import { getReportData } from "@src/restaurant/operations",
+  entities: [Order, OrderItem, MenuItem, Restaurant]
+}
+
 query getOrderDetails {
   fn: import { getOrderDetails } from "@src/restaurant/operations",
   entities: [Order, OrderItem, MenuItem, AddOn, Restaurant, OrderItemAddOn]
